@@ -1,0 +1,11 @@
+flask
+flask_cors
+librosa
+numpy
+pandas
+pydub
+pyrubberband
+requests
+scipy
+soundfile
+audiostretchy
