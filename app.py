@@ -41,11 +41,10 @@ def calculate_gait_outcome(algorithm):
 
 @app.route("/stretch", methods=["GET"])
 def stretch_audio_file():
-    song_title = request.args.get("song_title")
+    song_filename = request.args.get("song_filename")
     bpm = request.args.get("bpm")
     isolate_vocals = request.args.get("isolate_vocals")
 
-    input_file = f"raw_audio_files/{song_title}.wav"
-    process_audio_files("https://github.com/cwall96/cueing/raw/main/music/")
+    output_audio_filepath = process_audio_files(song_filename, bpm)
 
-    return jsonify({ "success": True, "song_title": song_title, "bpm": bpm, "isolate_vocals": isolate_vocals })
+    return jsonify({ "success": True, "output_path": output_audio_filepath })
