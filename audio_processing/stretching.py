@@ -18,6 +18,8 @@ if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
 TMP_DIR = "/tmp"  # directory for temporary files
+if not os.path.exists(TMP_DIR):
+    os.makedirs(TMP_DIR)
 
 
 def ensure_temp_deleted(file_path):
@@ -87,6 +89,8 @@ def process_audio_files(filepath, target_bpm):
 
     temp_path = os.path.join(TMP_DIR, "tempotemp.mp3")
 
+    filepath = f"raw_audio_files/{filepath}"
+
     original_bpm = estimate_bpm(filepath)
 
     as_output_file = change_bpm_audiostretchy(filepath, target_bpm, original_bpm)
@@ -94,4 +98,4 @@ def process_audio_files(filepath, target_bpm):
     # Purge tmp directory
     ensure_temp_deleted(temp_path)
 
-    return as_output_file.split("/")[1]
+    return as_output_file.split("/")[-1]
