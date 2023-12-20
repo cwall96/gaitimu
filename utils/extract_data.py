@@ -10,6 +10,6 @@ def extract_data(request):
 
     df = pd.DataFrame({"x": acc_x, "y": acc_y, "z": acc_z, "T": t_vals})
 
-    df.to_csv(f"raw_data/{test_name}.csv")
+    df.to_csv(f"/home/cwall96/csvs/{test_name}.csv")
 
     return df, acc_x, acc_y, acc_z

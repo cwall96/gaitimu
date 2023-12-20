@@ -9,93 +9,69 @@ from audiostretchy.stretch import stretch_audio
 from urllib.parse import urljoin,urlparse
 from pydub import AudioSegment
 import uuid
+import io
+import subprocess
 
 
-OUTPUT_DIR = "output_audio_files"
-
+OUTPUT_DIR = "../output_audio_files"
 # Ensure the output directory exists
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
-TMP_DIR = "/tmp"  # directory for temporary files
-if not os.path.exists(TMP_DIR):
-    os.makedirs(TMP_DIR)
+def fetch_audio_data(url):
+    response = requests.get(url)
+    if response.status_code == 200:
+        return io.BytesIO(response.content)
+    else:
+        print("Failed to download the audio.")
+        return None
 
+def estimate_bpm(audio_segment, duration=30):
+    # Take a sample of the audio for BPM estimation
+    start_sample = max(0, (len(audio_segment) - duration * 1000) // 2)
+    sample_segment = audio_segment[start_sample:start_sample + duration * 1000]
 
-def ensure_temp_deleted(file_path):
-    """Utility function to ensure that temporary files are deleted."""
-    try:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-    except Exception as e:
-        print(f"Error deleting temp file: {e}")
+    samples = np.array(sample_segment.get_array_of_samples())
+    if sample_segment.channels == 2:
+        samples = samples.reshape((-1, 2))
+    y = samples.mean(axis=1) if sample_segment.channels > 1 else samples
+    sr = sample_segment.frame_rate
 
-
-def estimate_bpm(input_file):
-    y, sr = librosa.load(input_file, sr=None)
     onset_env = librosa.onset.onset_strength(y=y, sr=sr)
     tempo, _ = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr)
     print(f"Estimated original BPM: {tempo}")
-
     return tempo
 
+def change_bpm_audiosegment(audio_data, target_bpm, original_bpm):
+    factor = float(original_bpm) / float(target_bpm)
+    speed_change = 1 / factor
 
-def change_bpm_audiostretchy(input_file, target_bpm, original_bpm):
-    # Generate UUIDs for temporary and output files
-    temp_uuid = str(uuid.uuid1())
     output_uuid = str(uuid.uuid1())
+    output_file = os.path.join(OUTPUT_DIR, f"{output_uuid}.mp3")
+    temp_input_file = os.path.join(OUTPUT_DIR, f"temp_{output_uuid}.mp3")
 
-    temp_path = f"{TMP_DIR}/{temp_uuid}.wav"
-    output_file = f"{OUTPUT_DIR}/{output_uuid}.mp3"
+    with open(temp_input_file, "wb") as file:
+        file.write(audio_data.getbuffer())
 
-    print(f"Temporary file: {temp_path}")
-    print(f"Output file: {output_file}")
+    subprocess.call(['ffmpeg', '-i', temp_input_file, '-filter:a', f"atempo={speed_change}", '-ab', '128k', output_file])
+    os.remove(temp_input_file)  # Clean up the temporary MP3 file
 
-    try:
-        factor = float(original_bpm) / float(target_bpm)
-    except TypeError:
-        print("Invalid BPM values. Make sure they are numeric.")
-        return None
-
-    print("Changing BPM with AudioStretchy...")
-    start_time = time.time()
-
-    try:
-        # Load and process the audio
-        y, sr = librosa.load(input_file, sr=None, res_type='kaiser_best')
-        sf.write(temp_path, y, sr)
-
-        # Stretch the audio
-        stretch_audio(temp_path, temp_path, ratio=factor)
-
-        # Convert WAV to MP3
-        audio = AudioSegment.from_wav(temp_path)
-        audio.export(output_file, format="mp3")  # Export as MP3
-
-        ensure_temp_deleted(temp_path)
-
-        elapsed_time = time.time() - start_time
-        print(f"BPM change completed in {elapsed_time:.2f} seconds!")
-
-        return output_file
-
-    except Exception as e:
-        print(f"Error processing the audio with AudioStretchy: {e}")
-        ensure_temp_deleted(temp_path)
-        return None
-
+    return output_file
 
 def process_audio_files(filepath, target_bpm):
+    mp3_url = f"https://github.com/cwall96/cueing/raw/main/music/{filepath}"
+    audio_data = fetch_audio_data(mp3_url)
 
-    temp_path = os.path.join(TMP_DIR, "tempotemp.mp3")
+    if audio_data:
+        audio_segment = AudioSegment.from_file(io.BytesIO(audio_data.getbuffer()), format="mp3")
 
-    filepath = f"raw_audio_files/{filepath}"
+        # Check if filepath is '100.mp3' and set original_bpm to 100
+        if filepath == '100.mp3':
+            original_bpm = 100
+        else:
+            original_bpm = estimate_bpm(audio_segment)
 
-    original_bpm = estimate_bpm(filepath)
-
-    as_output_file = change_bpm_audiostretchy(filepath, target_bpm, original_bpm)
-    
-    # Purge tmp directory
-    ensure_temp_deleted(temp_path)
-
-    return as_output_file.split("/")[-1]
+        output_file = change_bpm_audiosegment(audio_data, target_bpm, original_bpm)
+        return output_file.split("/")[-1]
+    else:
+        return None
