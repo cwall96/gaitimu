@@ -1,5 +1,5 @@
 # Lib imports
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import pandas as pd
 from flask_cors import CORS
 
@@ -39,6 +39,13 @@ def calculate_gait_outcome(algorithm):
     
     return jsonify(result)
 
+
+@app.route('/download/<filename>', methods=["GET"])
+def download_file(filename):
+    directory = "output_audio_files"  # The directory where you store your output files
+    return send_from_directory(directory, filename, as_attachment=True)
+
+
 @app.route("/stretch", methods=["GET"])
 def stretch_audio_file():
     song_filename = request.args.get("song_filename")
@@ -47,4 +54,8 @@ def stretch_audio_file():
 
     output_audio_filepath = process_audio_files(song_filename, bpm)
 
+    if output_audio_filepath is None:
+        return jsonify({ "success": False, "message": "Unknown error encountered processing audio file. Please check logs." })
+    
     return jsonify({ "success": True, "output_path": output_audio_filepath })
+
