@@ -2,6 +2,7 @@
 from flask import Flask, request, jsonify, send_from_directory
 import pandas as pd
 from flask_cors import CORS
+import git
 
 # Utilities for validating and extracting data from the request
 from utils.validate_request_params import validate_request_params
@@ -58,4 +59,11 @@ def stretch_audio_file():
         return jsonify({ "success": False, "message": "Unknown error encountered processing audio file. Please check logs." })
     
     return jsonify({ "success": True, "output_path": output_audio_filepath })
+
+@app.route("/check-git-upgrade", methods=["POST"])
+def update_via_github():
+    import os
+    os.system("git pull origin main")
+    return jsonify({ "success": True, "message": "Successfully updated codebase." })
+
 
