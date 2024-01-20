@@ -38,7 +38,7 @@ def calculate_gait_outcome(algorithm):
     if algorithm == "pocket":
         result = pocket(acc_x, acc_y, acc_z)
     
-    return jsonify(result)
+    return 'jsonify(result)'
 
 
 @app.route('/download/<filename>', methods=["GET"])
