@@ -59,6 +59,7 @@ def change_bpm_audiosegment(audio_file_path, target_bpm, original_bpm):
 
 def process_audio_files(filepath, target_bpm):
     audio_file_path = os.path.join(RAW_AUDIO_DIR, filepath)
+    print(audio_file_path)
 
     print(audio_file_path)
 
