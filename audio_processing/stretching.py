@@ -61,7 +61,6 @@ def process_audio_files(filepath, target_bpm):
     audio_file_path = os.path.join(RAW_AUDIO_DIR, filepath)
     print(audio_file_path)
 
-    print(audio_file_path)
 
     if os.path.exists(audio_file_path):
         audio_segment = AudioSegment.from_file(audio_file_path, format="mp3")
